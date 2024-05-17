@@ -7,82 +7,159 @@
 
 import SwiftUI
 import CoreData
+import MapKit
+import CoreLocation
+
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+    @State private var latitude: Double = 0
+    @State private var longitude: Double = 0
+    @State private var hum: Int = 0
+    @State private var vis: Double = 0
+    @State private var pres: Double = 0
+    @State private var feel: Double = 0
+    @State private var city: String = " "
+    @State private var clouds: String = " "
+    @State private var temp: String = " "
+    @State private var imageUrl: String = " "
+    @State  var daysArray : [ForecastDay] = []
+    let day = Date()
+   
+    
+    init(){
+        let locationManager = CLLocationManager()
+        locationManager.requestWhenInUseAuthorization()
+        latitude = (CLLocationManager().location?.coordinate.latitude ?? 0)!
+        longitude = (CLLocationManager().location?.coordinate.longitude ?? 0)!
+        
+    }
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-            Text("Select an item")
+        var viewModel = HomeViewModel()
+        let isMorning = Calendar.current.component(.hour, from: day) >= 5 && Calendar.current.component(.hour, from: day) < 15
+        
+          NavigationView {
+        
+              VStack{
+                  VStack{
+                      Text(city).bold().foregroundColor(.white).font(.system(size: 50))
+                      Text((temp + "°C")).bold().foregroundColor(.white).font(.system(size: 50))
+                      Text(clouds).bold().foregroundColor(.white).font(.system(size: 50))
+                      AsyncImage(url: URL(string: "https:" + imageUrl ))
+                                 
+                      VStack{
+                          List {
+                              ForEach(daysArray.indices, id: \.self) { index in
+                                  NavigationLink(destination: DayDetailView(daysArray: daysArray[index])){
+                                      HStack {
+                                          Text(getDate(value: index))
+                                          AsyncImage(url: URL(string: "https:" + (daysArray[index].hour?[index].condition?.icon)!))
+                                          Text(String(format: "%.2f", (daysArray[index].hour?[index].tempC)!) + "°C")
+                                      }.background(Image("weatherBack"))
+                                      .frame(width: 400)
+                                      .border(Color.blue)
+                                  }
+                                  //.navigationBarTitle("Days")
+                              }
+                          }
+                      }
+
+                      VStack{
+                          HStack{
+                              Text("Humidity      ").bold().foregroundColor(.white).font(.system(size: 40))
+                              Text("Visibility").bold().foregroundColor(.white).font(.system(size: 40))
+                          }
+                          HStack{
+                              Text("\(Int(hum ))%               ").bold().foregroundColor(.white).font(.system(size: 30))
+                              Text("\(Int(vis)) KM").bold().foregroundColor(.white).font(.system(size: 30))
+                          }
+                          HStack{
+                              Text("Feels like      ").bold().foregroundColor(.white).font(.system(size: 40))
+                              Text("Presure").bold().foregroundColor(.white).font(.system(size: 40))
+                          }
+                          HStack{
+                              Text("\(Int(feel) ) °C                       ").bold().foregroundColor(.white).font(.system(size: 30))
+                              Text("\(Int(pres))").bold().foregroundColor(.white).font(.system(size: 30))
+                          }
+                      }
+                  }
+                 // .background(Image("weatherBack")
+                   // .edgesIgnoringSafeArea(.all))
+                  .frame(maxWidth: .infinity, maxHeight: .infinity)
+                              .background(
+                                  Image(isMorning ? "morning" : "weatherBack")
+                                      .resizable()
+                                      .aspectRatio(contentMode: .fill)
+                                      .edgesIgnoringSafeArea(.all))
+                  .onAppear {
+                    //  self.callApi()
+                  }
+                  
+              }
+            
         }
+          .onAppear{
+             
+              viewModel.forecastClosure = {
+                  res in
+                  self.daysArray = (res.forecastday)!
+                  
+              }
+              viewModel.currentWeatherClosure = {
+                  res in
+                  hum = (res.humidity ?? 0)!
+                  vis = (res.uv ?? 0)!
+                  pres = (res.pressureIn ?? 0)!
+                  feel = (res.feelslikeF ?? 0)!
+                  temp = "\(res.tempC ?? 0)"
+                  clouds = "\(res.condition?.text ?? "0")"
+                  imageUrl = (res.condition?.icon)!
+              }
+              viewModel.locationClosure = {
+                  res in
+                  city = (res.name ?? "Def")!
+              }
+              
+              viewModel.getData()
+          }
+ 
     }
+   
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
+    /* func callApi(){
 
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+        ApiManager.fetchData { res in
+            switch res {
+            case .success(let res) :
+                print("success")
+                print("lat" , latitude )
+                print("long",longitude )
+                DispatchQueue.main.async {
+                    hum = (res.current?.humidity ?? 0)!
+                    vis = (res.current?.uv ?? 0)!
+                    pres = (res.current?.pressureIn ?? 0)!
+                    feel = (res.current?.feelslikeF ?? 0)!
+                    temp = "\(res.current?.tempC ?? 0)"
+                   
+                    clouds = "\(res.current?.condition?.text ?? "0")"
+                    imageUrl = (res.current?.condition?.icon)!
+                    daysArray = (res.forecast?.forecastday)!
+                    city = (res.location?.name ?? "Def")!
+                    
+                }
+                
+            
+
+            case .failure(_):
+                print("error")
             }
         }
-    }
+    } */
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
 
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
-    }
 }
-
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        ContentView()
     }
 }
