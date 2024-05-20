@@ -8,17 +8,17 @@
 import Foundation
 class HomeViewModel {
     
-//    var isDataCame : Response! {
-//        didSet{
-//
-//        }
-//    }
+    var locationManager = CurrentLocation()
     var currentWeatherClosure : (CurrentWeather)->() = {_ in }
     var forecastClosure : (Forecast)->() = {_ in }
     var locationClosure : (Location)->() = {_ in }
+    var lat : Double?
+    var long : Double?
+    
 
-    func getData(){
-        ApiManager.fetchData { [weak self] res in
+
+    func getData(lat : Double , long : Double){
+        ApiManager.fetchData(lat: lat ,long: long) { [weak self] res in
             switch res {
             case .success(let res) :
                 print("success")

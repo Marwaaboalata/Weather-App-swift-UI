@@ -7,14 +7,14 @@
 
 import Foundation
 
-let  Api_Key : String = "f2f9ec409c67b8498f33c2bf4c7fb7e7"
+let  Api_Key : String = "e6c3e07a974d4232b3d02931241305"
 let  Base_URL : String = "https://api.openweathermap.org/data/2.5/"
 let Api_Key_Map : String = "AIzaSyALEzKGnX8Gta5jX2RArUMQgtcMtd4cYEs"
 class ApiManager {
     
-    static func fetchData ( completionHnadler : @escaping (Result< Response, Error>) ->()) {
+    static func fetchData ( lat : Double ,long : Double ,completionHnadler : @escaping (Result< Response, Error>) ->()) {
             
-            let url = URL(string: "https://api.weatherapi.com/v1/forecast.json?key=e6c3e07a974d4232b3d02931241305&q=30.0715495,31.015953&days=3&aqi=yes&alerts=no"
+            let url = URL(string: "https://api.weatherapi.com/v1/forecast.json?key=e6c3e07a974d4232b3d02931241305&q=\(lat),\(long)&days=3&aqi=yes&alerts=no"
     )
             guard let newUrl = url else {return }
             print(newUrl)

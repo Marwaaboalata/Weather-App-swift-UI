@@ -5,11 +5,11 @@
 //  Created by marwa on 15/05/2024.
 //
 
-import Foundation
+
 import Foundation
 import CoreLocation
- 
-class currentLocation: NSObject, ObservableObject, CLLocationManagerDelegate {
+
+class CurrentLocation: NSObject, ObservableObject, CLLocationManagerDelegate {
      var locationManager = CLLocationManager()
      @Published var currentLocation: CLLocation?
     
@@ -20,6 +20,7 @@ class currentLocation: NSObject, ObservableObject, CLLocationManagerDelegate {
         self.locationManager.startUpdatingLocation()
     }
     
+    
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         self.currentLocation = location
@@ -27,3 +28,5 @@ class currentLocation: NSObject, ObservableObject, CLLocationManagerDelegate {
        
     }
 }
+
+
